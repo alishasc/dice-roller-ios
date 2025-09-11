@@ -10,25 +10,38 @@ import Foundation
 extension HomeView {
     @Observable
     class ViewModel {
-        let savePath = URL.documentsDirectory.appending(path: "SavedDiceRoles")
-        private(set) var previousRoles: [Dice]
+        let savePath = URL.documentsDirectory.appending(path: "SavedDiceRolls")
+        private(set) var previousRolls: [Dice]
+        var dieNumber = 6
         
         init() {
             do {
                 // try and load existing data and decode into the previousRolls array
                 let data = try Data(contentsOf: savePath)
-                previousRoles = try JSONDecoder().decode([Dice].self, from: data)
+                previousRolls = try JSONDecoder().decode([Dice].self, from: data).sorted(by: >)
             } catch {
-                previousRoles = []
+                previousRolls = []
             }
         }
         
-        func save(new dice: Dice) {
+        func rollNewNumber() {
+            dieNumber = Int.random(in: 1...6)
+            // save new instance of dice
+            let dice = Dice(dieNumber: dieNumber)
+            previousRolls.insert(dice, at: 0)
+            save()
+        }
+        
+        func deleteRoll(_ dice: Dice) {
+            // remove Dice from array
+            previousRolls.removeAll { $0.id == dice.id }
+            save()
+        }
+        
+        func save() {
             do {
-                previousRoles.append(dice)
-                
                 // try and convert data into raw JSON Data and save to "SavedDiceRolls" file
-                let data = try JSONEncoder().encode(previousRoles)
+                let data = try JSONEncoder().encode(previousRolls)
                 try data.write(to: savePath, options: [.atomic, .completeFileProtection])
             } catch {
                 print("Unable to save data.")
